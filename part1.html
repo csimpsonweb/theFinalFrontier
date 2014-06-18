@@ -20,6 +20,7 @@ function preload() {
 	game.load.image('ship', 'assets/thrust_ship2.png');
 	game.load.image('starfield', 'assets/starfield.png');
 	game.load.image('bullet', 'assets/bullet.png');
+	game.load.image('enemy', 'assets/enemyship.png');
 
 }
 // create the global variables
@@ -29,16 +30,36 @@ var fireButton;
 var bullets;
 var bulletTime = 0;
 var cursors;
+var enemy;
+var boom;
 
 
 function create() {
 
-    game.physics.startSystem(Phaser.Physics.ARCADE);
     //  The scrolling starfield background
     starfield = game.add.tileSprite(0, 0, 800, 600, 'starfield');
 
+	//	Enable p2 physics
+	game.physics.startSystem(Phaser.Physics.P2JS);
+
+    //  Make things a bit more bouncey
+    game.physics.p2.defaultRestitution = 0.8;
+
+    //setup the ship
+	player = game.add.sprite(400, 500, 'ship');
+    //player.anchor.setTo(0.5, 0.5);
+
+    //  Enable if for physics. This creates a default rectangular body.
+	game.physics.p2.enable(player);
+
+    //  Modify a few body properties
+	player.body.setZeroDamping();
+	player.body.fixedRotation = true;
+
+
     //  Our bullet group
     bullets = game.add.group();
+    //game.physics.enable(bullets, Phaser.Physics.ARCADE);
     bullets.enableBody = true;
     bullets.physicsBodyType = Phaser.Physics.ARCADE;
     bullets.createMultiple(30, 'bullet');
@@ -47,36 +68,81 @@ function create() {
     bullets.setAll('outOfBoundsKill', true);
     bullets.setAll('checkWorldBounds', true);
 
-    //setup the ship
-	player = game.add.sprite(400, 500, 'ship');
-    player.anchor.setTo(0.5, 0.5);
-    game.physics.enable(player, Phaser.Physics.ARCADE);
+    spawnEnemy();
 
     //Controls - to play the game with =)
     cursors = game.input.keyboard.createCursorKeys();
     fireButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 }
 
+function spawnEnemy(){
+	enemy = game.add.sprite(540,-10,'enemy');
+  	game.physics.enable(enemy, Phaser.Physics.ARCADE);
+
+	enemy.body.gravity.y = 1;
+	enemy.body.collideWorldBounds = true;
+	enemy.frame = 1;
+}
+function hitEnemy(enemy,bullet) {
+  	bullet.kill();
+  	//enemyHP -= 5;
+  	console.log('we hit the enemy');
+}
+
+gameState = true;
+function enemyDies() {
+	console.log('2');
+	  //boom = game.add.sprite(enemy.body.x - 50, enemy.body.y - 20, 'explosion');
+	  //game.physics.enable(boom, Phaser.Physics.ARCADE);
+	  //boom.animations.add('death', null, 25);
+	  //boom.animations.play('death');
+	  enemy.kill();
+
+	  //setTimeout(function() {game.world.remove(boom);},1000);
+}
+
+
+
 function update() {
     //  Scroll the background
     starfield.tilePosition.y += 2;
 
     //  Reset the player, then check for movement keys
-    player.body.velocity.setTo(0, 0);
+    //player.body.velocity.setTo(0, 0);
+
+	player.body.setZeroVelocity();
 
     if (cursors.left.isDown)
     {
-        player.body.velocity.x = -200;
+    	player.body.moveLeft(400);
     }
     else if (cursors.right.isDown)
     {
-        player.body.velocity.x = 200;
+    	player.body.moveRight(400);
+    }
+
+    if (cursors.up.isDown)
+    {
+    	player.body.moveUp(400);
+    }
+    else if (cursors.down.isDown)
+    {
+    	player.body.moveDown(400);
     }
 
         if (fireButton.isDown)
     {
         fireBullet();
     }
+
+    game.physics.arcade.collide(bullets, enemy, hitEnemy, null, this);
+
+    /*
+    if (enemyHP <= 0 && gameState) {
+    enemyDies();
+    gameState = false;
+  	}
+  	*/
 }
 
 //places stuff underneath - new syntax territory , yikes!
